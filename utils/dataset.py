@@ -234,10 +234,6 @@ class UnsupDataset(torch.utils.data.Dataset):
             self.f2 = f2.readlines()
         self.max_len = max_len
         self.tokenizer = tokenizer
-
-
-
-
     def __len__(self):
         return len(self.f1)
 
@@ -294,9 +290,6 @@ class SupDataset(torch.utils.data.Dataset):
             self.f2 = f2.readlines()
         self.max_len = max_len
         self.tokenizer = tokenizer
-
-
-
 
     def __len__(self):
         return len(self.f1)

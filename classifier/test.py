@@ -14,7 +14,7 @@ from transformers import BartTokenizer
 
 sys.path.append("")
 from utils.dataset import SCIterator
-from classifier.textcnn import TextCNN
+from classifier.textcnn_t5 import TextCNN
 
 filter_sizes = [1, 2, 3, 4, 5]
 num_filters = [128, 128, 128, 128, 128]

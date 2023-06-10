@@ -176,15 +176,15 @@ def main():
 
     # CNN classifier for evaluation
     cls = TextCNN(300, len(cls_tokenizer), filter_sizes,
-                  num_filters, None, dropout=opt.dropout)
+                  num_filters, None, dropout=opt.dropout) # len=32100词汇token的数量
     cls.to(device).eval()
     cls.load_state_dict(torch.load('./checkpoints/t5_textcnn_{}.chkpt'.format(
-        opt.dataset)))
+        opt.dataset))) # 在平行数据集上做预训练，作formality classifier，用以evaluation和data filtering。
 
 
     styles = ['informal', 'formal']
     if opt.style == 0:
-        unsup_file = f"data/unlabeled/{opt.dataset.upper()}_200k_inf.txt"
+        unsup_file = f"data/unlabeled/{opt.dataset.upper()}_200k_inf.txt" # 利用无监督信号的informal的数据集，共200k
     else:
         raise ValueError("Invalid style.")
 
@@ -213,7 +213,7 @@ def main():
     print('[Info] {} instances from train set'.format(len(train_dataset)))
     print('[Info] {} instances from validation set'.format(len(val_dataset)))
 
-    # pretrained lm model for lm filter
+    # pretrained lm model for lm filter (lm: 检测fluency的指标perplexity score, by N-gram language model)
     language_model_path = f'./checkpoints/{opt.dataset}_{styles[1-opt.style]}.arpa'
     lm_model = kenlm.Model(language_model_path)
 
@@ -223,7 +223,7 @@ def main():
             aug = opt.aug_choice
             unlabeled_dataset = T5AugDataset(
                 src_file=unsup_file,
-                augmentor=aug,
+                augmentor=aug, # 现场数据增强
                 max_len=opt.max_len,
                 tokenizer=tokenizer,
                 aug_p=opt.aug_p,
@@ -264,7 +264,7 @@ def main():
     num_chosen = 0
 
     start = time.time()
-    train_iter = iter(train_loader)
+    train_iter=iter(train_loader)
     if opt.unsup:
         unsup_iter = iter(unsup_loader)
 
@@ -272,7 +272,7 @@ def main():
         try:
             data = next(train_iter)
         except:
-            train_iter = iter(train_loader)
+            train_iter=iter(train_loader) # 新的iteration
             data = next(train_iter)
 
         if opt.unsup and step > opt.pre_step:
@@ -284,7 +284,7 @@ def main():
 
         # supervised loss
         lm_labels = data['target_ids'].to(device, dtype=torch.long)
-        lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100
+        lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100 # 看不懂？
         ids = data['source_ids'].to(device, dtype=torch.long)
         mask = data['source_mask'].to(device, dtype=torch.long)
 
@@ -299,12 +299,13 @@ def main():
             aug_ids = unsup_batch['augment_ids'].to(device, dtype=torch.long)
             aug_mask = unsup_batch['augment_mask'].to(device, dtype=torch.long)
             model.eval()
-            pseudo_labels = model.generate(unsup_ids,
+            # 生成伪平行数据标签
+            pseudo_labels = model.generate(unsup_ids, # 不保存梯度
                                            attention_mask=unsup_mask,
                                            num_beams=5,
                                            max_length=30)
             model.train()
-
+            # 过滤伪标签
             if opt.filter == 'lm':
                 pseudo_targets = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for
                                   g in

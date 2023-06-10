@@ -284,8 +284,8 @@ class T5UnsupDataset(torch.utils.data.Dataset):
         return len(self.src)
 
     def __getitem__(self, index):
-        ctext = self.src[index].strip()
-        ctext = ' '.join(ctext.split())
+        ctext = self.src[index].strip() # 去除首尾空格
+        ctext = ' '.join(ctext.split()) # 
 
         text = self.aug[index].strip()
         text = ' '.join(text.split())
@@ -304,8 +304,6 @@ class T5UnsupDataset(torch.utils.data.Dataset):
             'augment_ids': augment_ids.to(dtype=torch.long),
             'augment_mask': augment_mask.to(dtype=torch.long)
         }
-
-
 
 class T5AugDataset(torch.utils.data.Dataset):
 
@@ -418,14 +416,6 @@ class UnsupDataset(torch.utils.data.Dataset):
         s = s[:min(len(s) - 1, self.max_len)] + s[-1:]
         aug = aug[:min(len(aug) - 1, self.max_len)] + aug[-1:]
         return s, aug
-
-
-
-
-
-
-
-
 
 def UnsupIterator(dataset, tokenizer, opt):
     '''Data iterator for fine-tuning BART'''

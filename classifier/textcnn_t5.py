@@ -47,10 +47,10 @@ class TextCNN(nn.Module):
                  num_filters, embedding=None, dropout=0.0):
         super(TextCNN, self).__init__()
 
-        self.feature_dim = sum(num_filters)
+        self.feature_dim = sum(num_filters) # 128 *5
         self.embeder = EmbeddingLayer(vocab_size, embed_dim, embedding)
         self.convs = nn.ModuleList([
-            nn.Conv2d(1, n, (f, embed_dim))
+            nn.Conv2d(1, n, (f, embed_dim)) # 输入通道1，输出通道128，卷积核（1-5，300）
             for (n, f) in zip(num_filters, filter_sizes)
         ])
 
