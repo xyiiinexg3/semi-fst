@@ -35,5 +35,22 @@ class ScheduledOptim():
         else:
             for param_group in self._optimizer.param_groups:
                 param_group['lr'] = self.init_lr
+    
+    def state_dict(self):
 
+        return {
+            'origin_optimizer': self._optimizer.state_dict(),
+            'init_lr' : self.init_lr,
+            'steps' : self.steps,
+            'decay_rate' : self.decay_rate,
+            'decay_step' : self.decay_step 
+
+        }
+    
+    def load_state_dict(self, state_dict):
+        self._optimizer.load_state_dict(state_dict['origin_optimizer'])
+        self.init_lr = state_dict['init_lr']
+        self.steps = state_dict['steps']
+        self.decay_rate = state_dict['decay_rate']
+        self.decay_step = state_dict['decay_step']
 

@@ -149,6 +149,7 @@ def main():
     parser.add_argument('-sigma', default=0.3, type=float, help='dynamic threshold for lm/bleu filtering')
     parser.add_argument('-ngrams', default=4, type=int)
     parser.add_argument('-log_dir', default='./logs', type=str, help='directory of logs')
+    parser.add_argument('-isReload', action='store_true', help='whether to reload')
 
 
     opt = parser.parse_args()
@@ -268,7 +269,17 @@ def main():
     if opt.unsup:
         unsup_iter = iter(unsup_loader)
 
-    for step in range(1, opt.steps):
+    # reload
+    path = 'checkpoints/{}_{}_{}_{}.chkpt'.format(opt.model, opt.dataset, opt.order, opt.style)
+    if opt.isReload and os.path.exists(path):
+        checkpoint = torch.load(path)
+        current_step = checkpoint['current_step']
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+    else:
+        current_step = 1
+
+    for step in range(current_step, opt.steps):
         try:
             data = next(train_iter)
         except:
@@ -521,8 +532,12 @@ def main():
             if bleu > best_bleu:
                 tab = 0
                 best_bleu = bleu
-                torch.save(model.state_dict(), 'checkpoints/{}_{}_{}_{}.chkpt'.format(
+                # torch.save(model.state_dict(), 'checkpoints/{}_{}_{}_{}.chkpt'.format(
+                #     opt.model, opt.dataset, opt.order, opt.style))
+                state = {'model':model.state_dict(), 'optimizer':optimizer.state_dict(), 'current_step':step}
+                torch.save(state, 'checkpoints/{}_{}_{}_{}.chkpt'.format(
                     opt.model, opt.dataset, opt.order, opt.style))
+                # for reload model
                 print('[Info] The checkpoint file has been updated.')
                 fitlog.add_best_metric({"dev":{"BLEU":best_bleu}})
                 test_bleu, test_acc, test_loss = test(model, tokenizer, cls, cls_tokenizer, opt)
