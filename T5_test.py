@@ -61,7 +61,7 @@ def test(model, tokenizer, cls, cls_tokenizer, opt):
         os.mkdir(f'./data/{opt.dataset}/outputs/{opt.model}/')
     with open('./data/{}/outputs/{}/{}_{}_{}.{}_best_test.txt'.format(opt.dataset, opt.model,
                                                                       opt.model, opt.dataset, opt.order, opt.style),
-              'w') as fout:
+              'w', encoding='UTF-8') as fout:
         for idx, data in enumerate(test_loader):
             if idx % 10 == 0:
                 print('[Info] processing {} batches | seconds {:.4f}'.format(
@@ -93,7 +93,7 @@ def test(model, tokenizer, cls, cls_tokenizer, opt):
 
     test_tgt = []
     test_src = []
-    with open(pred_file, 'r') as f:
+    with open(pred_file, 'r', encoding='UTF-8') as f:
         for line in f.readlines():
             if opt.style == 0:
                 test_tgt.append(cls_tokenizer.encode(line.strip())[:opt.max_len])
@@ -121,7 +121,7 @@ def test(model, tokenizer, cls, cls_tokenizer, opt):
 
     with open('./data/{}/outputs/{}/{}_{}_{}_bleu_test.txt'.format(opt.dataset, opt.model,
                                                                    opt.model, opt.dataset, opt.order, opt.style),
-              'a') as fbl:
+              'a', encoding='UTF-8') as fbl:
         fbl.write(
             'Test Bleu score for model {}: {:.4f};  Acc: {:.4f}\n'.format(opt.order, bleu, total_acc / total_num * 100))
 

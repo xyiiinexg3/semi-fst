@@ -64,7 +64,7 @@ def score_generated_sentences(generated_text_file_path, model):
     log_probs = list()
     perplexity_scores = list()
 
-    with open(generated_text_file_path) as generated_text_file:
+    with open(generated_text_file_path, encoding='UTF-8') as generated_text_file:
         for sentence in generated_text_file:
             cleaned_sentence = clean_text(sentence)
             log_probs.append(model.score(cleaned_sentence))
@@ -125,7 +125,7 @@ def main():
     parser.add_argument('-lr', default=1e-5, type=float, help='the learning rate')
     parser.add_argument('-ratio', default=1., type=float, help='proportion of data')
     parser.add_argument('-model', default='t5', type=str, help='the name of model')
-    parser.add_argument('-model_name', default='t5-large', type=str, help='the name of model')
+    parser.add_argument('-model_name', default='t5-small', type=str, help='the name of model')
     parser.add_argument('-dataset', default='em', type=str, help='the name of dataset')
     parser.add_argument('-steps', default=100000, type=int, help='force stop at x steps')
     parser.add_argument('-batch_size', default=16, type=int, help='the size in a batch')
@@ -156,7 +156,7 @@ def main():
     print('[Info]', opt)
     with open('./data/{}/outputs/{}/{}_{}_{}.{}_bleu.txt'.format(opt.dataset, opt.model,
                                                                  opt.model, opt.dataset, opt.order, opt.style),
-              'a') as fbl:
+              'a', encoding='UTF-8') as fbl:
         fbl.write(str(opt) + '\n')
 
     set_seed(opt.seed)
@@ -498,7 +498,7 @@ def main():
             if not os.path.exists(f'./data/{opt.dataset}/outputs/{opt.model}/'):
                 os.mkdir(f'./data/{opt.dataset}/outputs/{opt.model}/')
             with open('./data/{}/outputs/{}/{}_{}_{}.{}_step{}.txt'.format(opt.dataset, opt.model,
-                    opt.model, opt.dataset, opt.order, opt.style, step), 'w') as fout:
+                    opt.model, opt.dataset, opt.order, opt.style, step), 'w',encoding='UTF-8') as fout:
                 for idx, data in enumerate(val_loader):
                     if idx % 10 == 0:
                         print('[Info] processing {} batches | seconds {:.4f}'.format(
@@ -557,7 +557,7 @@ def main():
             # Evaluate style accuracy
             test_tgt = []
             test_src = []
-            with open(pred_file, 'r') as f:
+            with open(pred_file, 'r', encoding='UTF-8') as f:
                 for line in f.readlines():
                     if opt.style == 0:
                         test_tgt.append(cls_tokenizer.encode(line.strip())[:opt.max_len])
@@ -584,7 +584,7 @@ def main():
                 total_acc / total_num * 100, total_loss / total_num))
 
             with open('./data/{}/outputs/{}/{}_{}_{}.{}_bleu.txt'.format(opt.dataset, opt.model,
-                    opt.model, opt.dataset, opt.order, opt.style), 'a') as fbl:
+                    opt.model, opt.dataset, opt.order, opt.style), 'a', encoding='UTF-8') as fbl:
 
                 fbl.write('Bleu score at step {}: {:.4f};  Acc: {:.4f}\n'.format(step, bleu, total_acc / total_num * 100))
             acc = total_acc / total_num * 100
