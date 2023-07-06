@@ -193,7 +193,7 @@ def main():
     train_tgt_file = 'data/{}/{}/{}'.format(opt.dataset, 'train', styles[1 - opt.style])
     train_dataset = T5Dataset(train_src_file, train_tgt_file, tokenizer, opt.max_len)
     train_loader = DataLoader(train_dataset,
-                              num_workers=2,
+                              num_workers=0, # num_workers EOFError: Ran out of input AttributeError: Can't pickle local object 'SCIterator.<locals>.cls_fn'
                               batch_size=opt.batch_size,
                               shuffle=True)
 
@@ -202,7 +202,7 @@ def main():
     val_label_files = f'data/{opt.dataset}/tune/{styles[1 - opt.style]}'
     val_dataset = T5Dataset(val_src_file, val_tgt_file, tokenizer, opt.max_len)
     val_loader = DataLoader(val_dataset,
-                            num_workers=2,
+                            num_workers=0,
                             batch_size=opt.val_batch_size,
                             shuffle=False)
 
