@@ -153,7 +153,7 @@ def SCIterator(insts_0, insts_1, opt, pad_token_id=1, shuffle=True):
             label=[0 if i < len(insts_0)
                    else 1 for i in range(num)]),
         shuffle=shuffle,
-        num_workers=2,
+        num_workers=0, #  2
         collate_fn=cls_fn,
         batch_size=opt.batch_size)
 
@@ -211,7 +211,7 @@ def BARTIterator(train_src, train_tgt,
         BartDataset(
             src_inst=train_src,
             tgt_inst=train_tgt),
-        num_workers=2,
+        num_workers=0, # 2
         batch_size=opt.batch_size,
         collate_fn=paired_collate_fn,
         shuffle=True)
@@ -220,7 +220,7 @@ def BARTIterator(train_src, train_tgt,
         BartDataset(
             src_inst=valid_src,
             tgt_inst=valid_tgt),
-        num_workers=2,
+        num_workers=0, # 2
         batch_size=opt.batch_size,
         collate_fn=paired_collate_fn)
 
@@ -256,7 +256,7 @@ def SupIterator(dataset, tokenizer, opt):
             aug_file=f"data/unlabeled/{dataset}-aug",
             max_len=opt.max_len,
             tokenizer=tokenizer),
-        num_workers=4,
+        num_workers=0, # 4
         batch_size=opt.unsup_batch_size,
         collate_fn=paired_collate_fn,
         shuffle=True)
@@ -273,7 +273,7 @@ def SupIterator(dataset, tokenizer, opt):
             aug_file=f"data/unlabeled/{dataset}-aug",
             max_len=opt.max_len,
             tokenizer=tokenizer),
-        num_workers=4,
+        num_workers=0,  # 4
         batch_size=opt.unsup_batch_size,
         collate_fn=paired_collate_fn,
         shuffle=True)

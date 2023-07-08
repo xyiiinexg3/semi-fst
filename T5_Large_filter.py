@@ -114,10 +114,6 @@ def sentence_bleu_score(sents, refs, ngrams=3):
         scores.append(sentence_bleu([ref], sent, weights=weight))
     return scores
     
-
-
-
-
 def main():
     parser = argparse.ArgumentParser('Fine-Tuned T5 for style transfer')
     parser.add_argument('-order', default=0, type=str, help='the order of traing')
@@ -276,6 +272,7 @@ def main():
         current_step = checkpoint['current_step']
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        print("reloading, step is {}".format(current_step))
     else:
         current_step = 1
 
