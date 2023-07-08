@@ -97,43 +97,43 @@ class AbbrAug(WordAugmenter):
 #         return self.reverse_tokenizer(tokens)
 
 
-# class RepeatCharAug(CharAugmenter):
-#     def __init__(self, name='repeat_char', repeat_times=3, min_char=2, aug_char_min=1, aug_char_max=10, aug_char_p=0.3,
-#                  aug_word_min=1, aug_word_max=10, aug_word_p=0.3, tokenizer=None, reverse_tokenizer=None,
-#                  stopwords=None, verbose=0, stopwords_regex=None):
-#         super().__init__(
-#             name=name, action="substitute", min_char=min_char, aug_char_min=aug_char_min,
-#                 aug_char_max=aug_char_max, aug_char_p=aug_char_p, aug_word_min=aug_word_min,
-#                 aug_word_max=aug_word_max, aug_word_p=aug_word_p, tokenizer=tokenizer,
-#                 reverse_tokenizer=reverse_tokenizer, stopwords=stopwords, device='cpu',
-#                 verbose=verbose, stopwords_regex=stopwords_regex)
-#
-#
-#         self.repeat_times = repeat_times
-#
-#     def substitute(self, data):
-#         results = []
-#         # Tokenize a text (e.g. The quick brown fox jumps over the lazy dog) to tokens (e.g. ['The', 'quick', ...])
-#         tokens = self.tokenizer(data)
-#         # Get target tokens
-#         aug_word_idxes = self._get_aug_idxes(tokens, self.aug_word_min, self.aug_word_max, self.aug_word_p, Method.WORD)
-#
-#         for token_i, token in enumerate(tokens):
-#             # Do not augment if it is not the target
-#             if token_i not in aug_word_idxes:
-#                 results.append(token)
-#                 continue
-#
-#
-#             chars = self.token2char(token)
-#
-#             chars[-1] = chars[-1] * self.repeat_times
-#
-#             result = "".join(chars)
-#
-#             results.append(result)
-#
-#         return self.reverse_tokenizer(results)
+class RepeatCharAug(CharAugmenter):
+    def __init__(self, name='repeat_char', repeat_times=3, min_char=2, aug_char_min=1, aug_char_max=10, aug_char_p=0.3,
+                 aug_word_min=1, aug_word_max=10, aug_word_p=0.3, tokenizer=None, reverse_tokenizer=None,
+                 stopwords=None, verbose=0, stopwords_regex=None):
+        super().__init__(
+            name=name, action="substitute", min_char=min_char, aug_char_min=aug_char_min,
+                aug_char_max=aug_char_max, aug_char_p=aug_char_p, aug_word_min=aug_word_min,
+                aug_word_max=aug_word_max, aug_word_p=aug_word_p, tokenizer=tokenizer,
+                reverse_tokenizer=reverse_tokenizer, stopwords=stopwords, device='cpu',
+                verbose=verbose, stopwords_regex=stopwords_regex)
+
+
+        self.repeat_times = repeat_times
+
+    def substitute(self, data):
+        results = []
+        # Tokenize a text (e.g. The quick brown fox jumps over the lazy dog) to tokens (e.g. ['The', 'quick', ...])
+        tokens = self.tokenizer(data)
+        # Get target tokens
+        aug_word_idxes = self._get_aug_idxes(tokens, self.aug_word_min, self.aug_word_max, self.aug_word_p, Method.WORD)
+
+        for token_i, token in enumerate(tokens):
+            # Do not augment if it is not the target
+            if token_i not in aug_word_idxes:
+                results.append(token)
+                continue
+
+
+            chars = self.token2char(token)
+
+            chars[-1] = chars[-1] * self.repeat_times
+
+            result = "".join(chars)
+
+            results.append(result)
+
+        return self.reverse_tokenizer(results)
 
 
 """

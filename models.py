@@ -39,12 +39,12 @@ class AdvContrastive(nn.Module):
         hidden_states = encoder_outputs[0]
 
         decoder_outputs = decoder(
-            input_ids=decoder_input_ids,
-            attention_mask=decoder_attention_mask,
+            input_ids=decoder_input_ids, # [16, 49]
+            attention_mask=decoder_attention_mask, # [16, 49]
             inputs_embeds=None,
             past_key_value_states=None,
-            encoder_hidden_states=hidden_states,
-            encoder_attention_mask=attention_mask,
+            encoder_hidden_states=hidden_states,  # [16, 50, 512]
+            encoder_attention_mask=attention_mask, # [16, 50, 512]
             head_mask=None,
             use_cache=None,
         )

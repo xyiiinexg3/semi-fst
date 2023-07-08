@@ -56,7 +56,7 @@ def data_augment_all(dataset, augmentor):
     elif augmentor == 'substitute':
         aug = naw.ContextualWordEmbsAug(
         model_path = 'bert-base-uncased', action = "substitute")
-    with open(src_file, 'r') as f1, open(aug_file, 'w') as f2:
+    with open(src_file, 'r', encoding='UTF-8') as f1, open(aug_file, 'w', encoding='UTF-8') as f2:
         f1 = f1.readlines()
         for i, s in enumerate(tqdm(f1)):
             augmented = data_augment(s, aug)
@@ -87,7 +87,7 @@ def read_data(dataset, style, max_len, prefix,
             tgt_file = 'data/{}/{}/informal'.format(dataset, prefix)
 
     src_seq, tgt_seq = [], []
-    with open(src_file, 'r') as f1, open(tgt_file, 'r') as f2:
+    with open(src_file, 'r', encoding='UTF-8') as f1, open(tgt_file, 'r', encoding='UTF-8') as f2:
         f1 = f1.readlines()
         f2 = f2.readlines()
         index = [i for i in range(len(f1))]
@@ -118,7 +118,7 @@ def read_unlabel_data(dataset, max_len,
 
     src_seq = []
     aug_seq = []
-    with open(src_file, 'r') as f1, open(aug_file, 'r') as f2:
+    with open(src_file, 'r', encoding='UTF-8') as f1, open(aug_file, 'r', encoding='UTF-8') as f2:
         f1 = f1.readlines()
         f2 = f2.readlines()
 
@@ -212,7 +212,7 @@ def load_embedding(tokenizer, embed_dim, embed_path=None):
 
     print('[Info] Loading embedding')
     embed_dict = {}
-    with open(embed_path) as file:
+    with open(embed_path, encoding='UTF-8') as file:
         for i, line in enumerate(file):
             if i == 0:
                 continue
@@ -237,7 +237,7 @@ class T5Dataset(torch.utils.data.Dataset):
 
     def __init__(self, src_file, tgt_file, tokenizer, max_len):
 
-        with open(src_file, 'r') as f1, open(tgt_file,'r') as f2:
+        with open(src_file, 'r', encoding='UTF-8') as f1, open(tgt_file,'r', encoding='UTF-8') as f2:
             self.src = f1.readlines()
             self.tgt = f2.readlines()
         self.max_len = max_len
@@ -273,7 +273,7 @@ class T5UnsupDataset(torch.utils.data.Dataset):
 
     def __init__(self, src_file, aug_file, tokenizer, max_len):
 
-        with open(src_file, 'r') as f1, open(aug_file,'r') as f2:
+        with open(src_file, 'r', encoding='UTF-8') as f1, open(aug_file,'r', encoding='UTF-8') as f2:
             self.src = f1.readlines()
             self.aug = f2.readlines()
         self.max_len = max_len
@@ -309,7 +309,7 @@ class T5AugDataset(torch.utils.data.Dataset):
 
     def __init__(self, src_file, augmentor, tokenizer, max_len, aug_p=0.1, dataset='em'):
 
-        with open(src_file, 'r') as f1:
+        with open(src_file, 'r', encoding='UTF-8') as f1:
             self.src = f1.readlines()
         self.max_len = max_len
         self.tokenizer = tokenizer
@@ -396,7 +396,7 @@ def BARTIterator(train_src, train_tgt,
 
 class UnsupDataset(torch.utils.data.Dataset):
     def __init__(self, src_file, aug_file, max_len, tokenizer):
-        with open(src_file, 'r') as f1, open(aug_file,'r') as f2:
+        with open(src_file, 'r', encoding='UTF-8') as f1, open(aug_file,'r', encoding='UTF-8') as f2:
             self.f1 = f1.readlines()
             self.f2 = f2.readlines()
         self.max_len = max_len
