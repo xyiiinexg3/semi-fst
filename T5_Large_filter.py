@@ -31,7 +31,8 @@ from utils.T5_dataset import T5Dataset, T5UnsupDataset, T5AugDataset
 from utils.dataset import SCIterator
 from utils.nltk_bleu import evaluate_bleu
 from T5_test import test
-
+from models import AdvContrastive
+from copy import deepcopy
 
 device = 'cuda' if cuda.is_available() else 'cpu'
 
@@ -151,6 +152,11 @@ def main():
     parser.add_argument('-log_dir', default='./logs', type=str, help='directory of logs')
     parser.add_argument('-isReload', action='store_true', help='whether to reload')
 
+    # model adv contra
+    parser.add_argument("--tau", type=float, default=0.1)
+    parser.add_argument("--pos_eps", type=float, default=3.0)
+    parser.add_argument("--neg_eps", type=float, default=3.0)
+    parser.add_argument("--hidden_size", type=int, default=512)
 
     opt = parser.parse_args()
     print('[Info]', opt)
@@ -169,9 +175,12 @@ def main():
     tokenizer = T5Tokenizer.from_pretrained(opt.model_name)
     cls_tokenizer = tokenizer
 
-    model = T5ForConditionalGeneration.from_pretrained(opt.model_name)
+    # model = T5ForConditionalGeneration.from_pretrained(opt.model_name)
 
 
+    # model.to(device).train()
+    # model + advcontra
+    model = AdvContrastive(opt)
     model.to(device).train()
 
 
@@ -298,10 +307,30 @@ def main():
         lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100 # 看不懂？
         ids = data['source_ids'].to(device, dtype=torch.long)
         mask = data['source_mask'].to(device, dtype=torch.long)
+        dec_inputs = deepcopy(lm_labels[:, :-1])
 
-        outputs = model(input_ids=ids, attention_mask=mask, labels=lm_labels)
-        loss_ce = outputs[0]
-        total_loss_ce.append(loss_ce.item())
+        dec_mask = torch.sign(dec_inputs)
+        # since bos id is 0, change it into 1 (should be attended)
+        dec_mask[:, 0] = 1
+
+        inputs = {"input_ids": ids,
+                    "attention_mask": mask,
+                    "decoder_input_ids": dec_inputs,
+                    "decoder_attention_mask": dec_mask,
+                    "lm_labels": lm_labels
+                    }
+        inputs["adv"] = True
+        # outputs = model(input_ids=ids, attention_mask=mask, labels=lm_labels) # 原来的model输入
+        # loss_ce = outputs[0]
+        # total_loss_ce.append(loss_ce.item())
+
+        nll, cont_loss = model(**inputs) # 模型输入
+        loss_ce = nll + cont_loss # 改名字啦 loss-》loss_ce
+        # ADV没有opt.zero_grad()
+        # loss.backward()
+
+        # optimizer.step()
+        # model.zero_grad() #SEMI没有这个
 
         # unsupervised loss
         if opt.unsup and step > opt.pre_step:
