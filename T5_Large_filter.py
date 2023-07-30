@@ -36,7 +36,7 @@ from copy import deepcopy
 import torch.backends.cudnn as cudnn # RuntimeError: CUDA error: device-side assert triggered
 
 device = 'cuda' if cuda.is_available() else 'cpu'
-device = 'cpu'
+# device = 'cpu'
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1' # RuntimeError: CUDA error: device-side assert triggered
 
@@ -308,10 +308,10 @@ def main():
 
         # supervised loss
         lm_labels = data['target_ids'].to(device, dtype=torch.long)# [16, 50]
+        dec_inputs = deepcopy(lm_labels[:, :-1])# [16, 49] 移到前面，这样就不会有-100了
         lm_labels[lm_labels[:, :] == tokenizer.pad_token_id] = -100 # 看不懂？
         ids = data['source_ids'].to(device, dtype=torch.long)# [16, 50]
         mask = data['source_mask'].to(device, dtype=torch.long)# [16, 50]
-        dec_inputs = deepcopy(lm_labels[:, :-1])# [16, 49]
         lm_labels = deepcopy(lm_labels[:, 1:])
 
         dec_mask = torch.sign(dec_inputs)# [16, 49]
@@ -331,6 +331,7 @@ def main():
 
         nll, cont_loss = model(**inputs) # 模型输入
         loss_ce = nll + cont_loss # 改名字啦 loss-》loss_ce
+        total_loss_ce.append(loss_ce.item())
         # ADV没有opt.zero_grad()
         # loss.backward()
 
@@ -542,9 +543,12 @@ def main():
                     ids = data['source_ids'].to(device, dtype=torch.long)
                     mask = data['source_mask'].to(device, dtype=torch.long)
                     generated_ids = model.generate(ids,
-                                                   attention_mask=mask,
+                                                #    attention_mask=mask,
                                                    num_beams=5,
-                                                   max_length=30)
+                                                   max_length=30)# & 没有generate
+                    
+                    # with torch.no_grad():
+
                     preds = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in
                              generated_ids]
                     pred_list.extend(preds)

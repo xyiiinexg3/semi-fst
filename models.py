@@ -39,7 +39,7 @@ class AdvContrastive(nn.Module):
         hidden_states = encoder_outputs[0]
 
         decoder_outputs = decoder(
-            input_ids=decoder_input_ids, # [16, 49]
+            input_ids=decoder_input_ids, # [16, 49] # 其中有-100
             attention_mask=decoder_attention_mask, # [16, 49]
             inputs_embeds=None,
             past_key_value_states=None,
@@ -60,8 +60,8 @@ class AdvContrastive(nn.Module):
         vocab_size = lm_logits.size(-1)
 
         criterion = nn.CrossEntropyLoss(ignore_index=-100)
-        nll = criterion(lm_logits.view(-1, vocab_size),
-                        lm_labels.view(-1))
+        nll = criterion(lm_logits.view(-1, vocab_size), # [16, 49, 32128]
+                        lm_labels.contiguous().view(-1)) #& [16, 49] view size is not compatible with input tensor's size and stride
 
         if adv:
             proj_enc_h = self.projection(hidden_states)
@@ -106,8 +106,8 @@ class AdvContrastive(nn.Module):
             labels = torch.arange(batch_size,
                                   device=input_ids.device)
 
-            cont_loss = cont_crit(logits, labels)
-            new_cont_loss = cont_crit(new_logits, labels)
+            cont_loss = cont_crit(logits, labels) # [16, 17] , [16]
+            new_cont_loss = cont_crit(new_logits, labels) # [16, 17] , [16]
 
             cont_loss = 0.5 * (cont_loss + new_cont_loss)
 
@@ -124,7 +124,7 @@ class AdvContrastive(nn.Module):
         lm_logits = self.t5_model.lm_head(dec_hiddens)
         criterion = nn.CrossEntropyLoss(ignore_index=-100)
         loss = criterion(lm_logits.view(-1, lm_logits.size(-1)),
-                         lm_labels.view(-1))
+                         lm_labels.contiguous().view(-1)) # &
         loss.backward()
 
         dec_grad = dec_hiddens.grad.detach()
@@ -202,3 +202,10 @@ class AdvContrastive(nn.Module):
         avg_hidden = torch.sum(hidden, 1) / length
 
         return avg_hidden
+
+    def generate(self, input_ids, num_beams, max_length): # &
+        result = self.t5_model.generate(input_ids=input_ids, 
+                                        # attention_mask=mask,  #got an unexpected keyword argument 'attention_mask'
+                                        num_beams=num_beams, 
+                                        max_length=max_length)
+        return result
