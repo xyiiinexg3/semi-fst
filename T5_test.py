@@ -69,10 +69,10 @@ def test(model, tokenizer, cls, cls_tokenizer, opt):
                 start = time.time()
 
             ids = data['source_ids'].to(device, dtype=torch.long)
-            mask = data['source_mask'].to(device, dtype=torch.long)
+            # mask = data['source_mask'].to(device, dtype=torch.long)
 
-            generated_ids = model.generate(ids,
-                                           attention_mask=mask,
+            generated_ids = model.generate_(ids,
+                                        #    attention_mask=mask,
                                            num_beams=5,
                                            max_length=30)
 

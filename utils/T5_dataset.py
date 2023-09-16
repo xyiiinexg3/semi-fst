@@ -235,13 +235,59 @@ def load_embedding(tokenizer, embed_dim, embed_path=None):
 
 class T5Dataset(torch.utils.data.Dataset):
 
-    def __init__(self, src_file, tgt_file, tokenizer, max_len):
+    def __init__(self, src_file, tgt_file, tokenizer, max_len, aug_p=0.1):
 
         with open(src_file, 'r',encoding='UTF-8') as f1, open(tgt_file,'r',encoding='UTF-8') as f2:
             self.src = f1.readlines()
             self.tgt = f2.readlines()
         self.max_len = max_len
         self.tokenizer = tokenizer
+        # self.augmentor = naw.SpellingAug(aug_p= aug_p)
+
+    def __len__(self):
+        return len(self.src)
+
+    def __getitem__(self, index):
+        ctext = self.src[index].strip()
+        ctext = ' '.join(ctext.split())
+
+        # augtext = self.augmentor.augment(ctext)
+        # augtext = ' '.join(augtext.split())
+
+        text = self.tgt[index].strip()
+        text = ' '.join(text.split())
+
+        source = self.tokenizer.batch_encode_plus([ctext], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
+        target = self.tokenizer.batch_encode_plus([text], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
+        # aug = self.tokenizer.batch_encode_plus([augtext], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
+
+        source_ids = source['input_ids'].squeeze()
+        source_mask = source['attention_mask'].squeeze()
+        target_ids = target['input_ids'].squeeze()
+        target_mask = target['attention_mask'].squeeze()
+        # aug_ids = aug['input_ids'].squeeze()
+        # aug_mask = aug['attention_mask'].squeeze()
+
+        return {
+            'source_ids': source_ids.to(dtype=torch.long),
+            'source_mask': source_mask.to(dtype=torch.long),
+            'target_ids': target_ids.to(dtype=torch.long),
+            'target_ids_y': target_ids.to(dtype=torch.long),
+            # 'aug_ids':aug_ids.to(dtype=torch.long),
+            # 'aug_mask':aug_mask.to(dtype=torch.long)
+        }
+
+class T5TrainDataset(torch.utils.data.Dataset):
+
+    def __init__(self, src_file, tgt_file, gec_file, tokenizer, max_len, aug_p=0.1):
+
+        with open(src_file, 'r',encoding='UTF-8') as f1, open(tgt_file,'r',encoding='UTF-8') as f2, open(gec_file,'r',encoding='UTF-8') as f3:
+            self.src = f1.readlines()
+            self.tgt = f2.readlines()
+            self.gec = f3.readlines()
+        self.max_len = max_len
+        self.tokenizer = tokenizer
+        self.augmentor = naw.SpellingAug(aug_p= aug_p)
 
     def __len__(self):
         return len(self.src)
@@ -253,21 +299,38 @@ class T5Dataset(torch.utils.data.Dataset):
         text = self.tgt[index].strip()
         text = ' '.join(text.split())
 
+        spell_aug_text = self.augmentor.augment(ctext)
+        print('ctext', ctext)
+        print('spell_aug_text', spell_aug_text)
+        spell_aug_text = ' '.join(spell_aug_text[0].split())
+
+        gec_aug_text = self.gec[index].strip()
+        gec_aug_text = ' '.join(gec_aug_text.split())
+
         source = self.tokenizer.batch_encode_plus([ctext], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
         target = self.tokenizer.batch_encode_plus([text], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
+        spell_aug = self.tokenizer.batch_encode_plus([spell_aug_text], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
+        gec_aug = self.tokenizer.batch_encode_plus([gec_aug_text], max_length= self.max_len, padding='max_length',truncation=True,return_tensors='pt')
 
         source_ids = source['input_ids'].squeeze()
         source_mask = source['attention_mask'].squeeze()
         target_ids = target['input_ids'].squeeze()
         target_mask = target['attention_mask'].squeeze()
+        spell_aug_ids = spell_aug['input_ids'].squeeze()
+        spell_aug_mask = spell_aug['attention_mask'].squeeze()
+        gec_aug_ids = gec_aug['input_ids'].squeeze()
+        gec_aug_mask = gec_aug['attention_mask'].squeeze()
 
         return {
             'source_ids': source_ids.to(dtype=torch.long),
             'source_mask': source_mask.to(dtype=torch.long),
             'target_ids': target_ids.to(dtype=torch.long),
-            'target_ids_y': target_ids.to(dtype=torch.long)
+            'target_ids_y': target_ids.to(dtype=torch.long),
+            'spell_aug_ids':spell_aug_ids.to(dtype=torch.long),
+            'spell_aug_mask':spell_aug_mask.to(dtype=torch.long),
+            'gec_aug_ids':gec_aug_ids.to(dtype=torch.long),
+            'gec_aug_mask':gec_aug_mask.to(dtype=torch.long)
         }
-
 
 class T5UnsupDataset(torch.utils.data.Dataset):
 
