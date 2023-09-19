@@ -214,7 +214,7 @@ class CoNTGenerator(nn.Module):
         candidate_ids = self.generate(src_inp, src_pad_mask, args)
         return {"score": self.torch_bleu(target_inp, candidate_ids.unsqueeze(1), self.pad_id, 2).mean()}
 
-    def forward(self, src_inp, target_inp, target_outp, aug_spell ):
+    def forward(self, src_inp, target_inp, target_outp, aug_spell, aug_gec ):
         """
         cos_score distance of hypothesis to source
         """
@@ -247,12 +247,17 @@ class CoNTGenerator(nn.Module):
         # prepare contrastive learning
         samples_from_batch = target_inp[None, :, :].repeat(batch_size, 1, 1) # batch x batch x seq_len
         aug_spell = aug_spell.unsqueeze(1) # batch X 1 x seqlen
-        maxlen = max(aug_spell.size(2), cand_ids.size(2), samples_from_batch.size(2))
+        aug_gec = aug_gec.unsqueeze(1) # batch X 1 x seqlen
+        maxlen = max(aug_spell.size(2), aug_gec.size(2), cand_ids.size(2), samples_from_batch.size(2))
         # 调整seqlen
         if aug_spell.size(2) < maxlen:
             aug_spell = self.pad2max_len(aug_spell, maxlen)
         else:
             aug_spell = aug_spell[:, :, :maxlen]
+        if aug_gec.size(2) < maxlen:
+            aug_gec = self.pad2max_len(aug_gec, maxlen)
+        else:
+            aug_gec = aug_gec[:, :, :maxlen]
         if cand_ids.size(2) < maxlen:
             cand_ids = self.pad2max_len(cand_ids, maxlen)
         else:
@@ -267,25 +272,29 @@ class CoNTGenerator(nn.Module):
         #     samples_from_batch = self.pad2max_len(samples_from_batch, cand_len)
         # else:
         #     samples_from_batch = samples_from_batch[:, :, :cand_len]
-        samples_all = torch.cat([aug_spell, cand_ids, samples_from_batch], dim=1)  # batch x total_sample_num x seq_len
+        samples_all = torch.cat([aug_spell, aug_gec, cand_ids, samples_from_batch], dim=1)  # batch x total_sample_num x seq_len
 
         actual_distance = self.torch_bleu(target_inp, samples_all, self.pad_id, self.args.n_gram)  # batch x total_sample_num
         distance_mask = (actual_distance < 0.99)  # use to mask the gold
         actual_distance_masked = actual_distance * distance_mask.float()
         sample_num = min(self.args.max_sample_num - 1, actual_distance_masked.size(1) - 1)
+        # 排序
         actual_distance, actual_indices = torch.sort(actual_distance_masked, dim=-1, descending=True)
         sampled_actual_distance = actual_distance[:, :sample_num]
         sampled_actual_indices = actual_indices[:, :sample_num]
-        # concat itself
+        # concat itself, i.e. the golden truth
+        # 1. concat index
         self_indices = torch.arange(0, batch_size).reshape(batch_size, 1).to(
-            sampled_actual_indices.device) + cand_ids.size(1) + aug_spell.size(1)  # manually add gold 不用添加，因为之前mask就没掩盖掉
+            sampled_actual_indices.device) + cand_ids.size(1) + aug_spell.size(1) + aug_gec.size(1)  # manually add gold 不用添加，因为之前mask就没掩盖掉
         sampled_indices = torch.cat([self_indices, sampled_actual_indices], dim=-1)
-
+        # 2. concat distance;这是标准答案
         self_distance = torch.full([batch_size, 1], 1.0, device=sampled_actual_distance.device)
         sampled_bleu_distance = torch.cat([self_distance, sampled_actual_distance], dim=-1)
+        # 根据 排序后的index 组织 decoder inputs, 这些是作为contrastive samples
         dummy = sampled_indices.unsqueeze(-1).repeat(1, 1, samples_all.size(2))
         sampled_input = torch.gather(samples_all, 1, dummy)  # batch x sample_num x seq_len
 
+        # 计算对比样本的特征
         decoder_hidden_states = []
         for sample_idx in range(sampled_indices.size(-1)):
             sampled_input_dec = sampled_input[:, sample_idx, :]
@@ -300,10 +309,14 @@ class CoNTGenerator(nn.Module):
             decoder_feature = self.affine_transformation(decoder_feature, sample_pad_mask)  # batch x h
             decoder_hidden_states.append(decoder_feature.unsqueeze(1))
 
+        # 锚点样本的特征
         encoder_feature = self.affine_transformation(encoder_hidden_states, src_pad_mask)  # batch x h
+        # 对比样本的特征
         decoder_feature = torch.cat(decoder_hidden_states, dim=1)  # batch x sample_num x h
+        # 模型当前的距离计算
         cos_distance = torch.cosine_similarity(encoder_feature.unsqueeze(1), decoder_feature,
                                                dim=-1)  # batch x samle_num
+        # 与标准距离做loss
         cl_loss = self.ranking_loss(cos_distance, sampled_bleu_distance)
 
         return {'loss': nll_loss + cl_loss, "cl_loss": cl_loss}

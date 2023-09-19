@@ -371,7 +371,7 @@ def main():
 
         # outputs = model(input_ids=ids, attention_mask=mask, labels=lm_labels) 
         # 还没加gec_aug
-        outputs = model(src_inp=ids, target_inp=dec_inputs, target_outp=lm_labels, aug_spell = aug_spell_ids)
+        outputs = model(src_inp=ids, target_inp=dec_inputs, target_outp=lm_labels, aug_spell = aug_spell_ids, aug_gec = aug_gec_ids)
         # loss_ce = outputs[0]
         loss_ce = outputs['loss'] # 总loss
         total_loss_ce.append(loss_ce.item())
