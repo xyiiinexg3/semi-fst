@@ -5,6 +5,7 @@ from transformers import PegasusForConditionalGeneration, T5ForConditionalGenera
 import torch.nn.functional as F
 import copy
 from .fastNLP import seq_len_to_mask
+from copy import deepcopy
 
 
 class CoNTGenerator(nn.Module):
@@ -243,25 +244,44 @@ class CoNTGenerator(nn.Module):
             return {'loss': nll_loss}
 
         ###### Contrastive loss ######
+        #1.beam search generated samples
         cand_ids = self.sample_from_model(src_inp, src_pad_mask)  # batch x beam_size x seq_len
-        # prepare contrastive learning
+        # 2. other in-batch samples
         samples_from_batch = target_inp[None, :, :].repeat(batch_size, 1, 1) # batch x batch x seq_len
+        # 3. spell error augmented sample
         aug_spell = aug_spell.unsqueeze(1) # batch X 1 x seqlen
+        # 4. gec augmented sample
         aug_gec = aug_gec.unsqueeze(1) # batch X 1 x seqlen
-        maxlen = max(aug_spell.size(2), aug_gec.size(2), cand_ids.size(2), samples_from_batch.size(2))
+        # 5. encoder input = source sample as contrastive one
+        src_cont = deepcopy(src_inp[:, :-1])
+        batch_size = src_cont.size(0) # 第一维大小
+        pad_tensor = torch.full((batch_size,1),self.pad_id,dtype=src_cont.dtype).to(src_cont.device, dtype=torch.long)
+        src_cont = torch.cat([pad_tensor,src_cont], dim = 1)
+        src_cont = src_cont.unsqueeze(1) # batch X 1 x seqlen
+
+
+        maxlen = max(aug_spell.size(2), aug_gec.size(2), src_cont.size(2), cand_ids.size(2), samples_from_batch.size(2))
         # 调整seqlen
         if aug_spell.size(2) < maxlen:
             aug_spell = self.pad2max_len(aug_spell, maxlen)
         else:
             aug_spell = aug_spell[:, :, :maxlen]
+
         if aug_gec.size(2) < maxlen:
             aug_gec = self.pad2max_len(aug_gec, maxlen)
         else:
             aug_gec = aug_gec[:, :, :maxlen]
+
+        if src_cont.size(2) < maxlen:
+            src_cont = self.pad2max_len(src_cont, maxlen)
+        else:
+            src_cont = src_cont[:, :, :maxlen]
+
         if cand_ids.size(2) < maxlen:
             cand_ids = self.pad2max_len(cand_ids, maxlen)
         else:
             cand_ids = cand_ids[:, :, :maxlen]
+
         if samples_from_batch.size(2) < maxlen:
             samples_from_batch = self.pad2max_len(samples_from_batch, maxlen)
         else:
@@ -272,7 +292,9 @@ class CoNTGenerator(nn.Module):
         #     samples_from_batch = self.pad2max_len(samples_from_batch, cand_len)
         # else:
         #     samples_from_batch = samples_from_batch[:, :, :cand_len]
-        samples_all = torch.cat([aug_spell, aug_gec, cand_ids, samples_from_batch], dim=1)  # batch x total_sample_num x seq_len
+
+        # 1 + 1 + 1 + 8 + 8; 只取前16=猜测基本是剥离的in-batch 样本，so 只剩3个in-batch samples
+        samples_all = torch.cat([aug_spell, aug_gec, src_cont, cand_ids, samples_from_batch], dim=1)  # batch x total_sample_num x seq_len
 
         actual_distance = self.torch_bleu(target_inp, samples_all, self.pad_id, self.args.n_gram)  # batch x total_sample_num
         distance_mask = (actual_distance < 0.99)  # use to mask the gold
@@ -285,7 +307,7 @@ class CoNTGenerator(nn.Module):
         # concat itself, i.e. the golden truth
         # 1. concat index
         self_indices = torch.arange(0, batch_size).reshape(batch_size, 1).to(
-            sampled_actual_indices.device) + cand_ids.size(1) + aug_spell.size(1) + aug_gec.size(1)  # manually add gold 不用添加，因为之前mask就没掩盖掉
+            sampled_actual_indices.device) + cand_ids.size(1) + aug_spell.size(1) + aug_gec.size(1) + src_cont.size(1)  # manually add gold 不用添加，因为之前mask就没掩盖掉
         sampled_indices = torch.cat([self_indices, sampled_actual_indices], dim=-1)
         # 2. concat distance;这是标准答案
         self_distance = torch.full([batch_size, 1], 1.0, device=sampled_actual_distance.device)

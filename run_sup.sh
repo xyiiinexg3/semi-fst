@@ -21,6 +21,8 @@ em
 python T5_Large_filter.py -style 0 -dataset em  -order em.sup  -batch_size 8  -val_batch_size 16  -lr 2e-5  --warmup False  -isReload -isReload_opt True
 4 warmup only + cont-spell-gec
 python T5_Large_filter.py -style 0 -dataset em  -order em.sup  -batch_size 8  -val_batch_size 16  -lr 2e-5  --warmup False  -isReload 
+5 warmup only + cont-spell-gec-src
+python T5_Large_filter.py -style 0 -dataset em  -order em.sup  -batch_size 8  -val_batch_size 16  -lr 2e-5  --warmup False  -isReload 
 
 fr
 2; pre = 5 epoch + cont
