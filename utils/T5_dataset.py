@@ -299,8 +299,8 @@ class T5TrainDataset(torch.utils.data.Dataset):
         text = self.tgt[index].strip()
         text = ' '.join(text.split())
 
-        spell_aug_text = self.augmentor.augment(ctext)
-        print('ctext', ctext)
+        spell_aug_text = self.augmentor.augment(text) # 对informal error，改成对formal error # ctext
+        print('text', text)
         print('spell_aug_text', spell_aug_text)
         spell_aug_text = ' '.join(spell_aug_text[0].split())
 

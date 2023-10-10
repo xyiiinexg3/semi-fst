@@ -159,6 +159,9 @@ def main():
     parser.add_argument('-log_dir', default='./example/logs', type=str, help='directory of logs')
     parser.add_argument('-isReload', action='store_true', help='whether to reload')
     # new for cont
+
+    # spell error
+    parser.add_argument('--spl_p', default=0.1, type=float, help='spell error ratio') # 
     parser.add_argument('-isReload_opt', default=False, type=bool) # warmup后reset 优化器
     
     parser.add_argument('--PTM', default="t5")
@@ -221,7 +224,7 @@ def main():
     train_src_file = 'data/{}/{}/{}'.format(opt.dataset, 'train', styles[opt.style]) # informal
     train_tgt_file = 'data/{}/{}/{}'.format(opt.dataset, 'train', styles[1 - opt.style]) # formal
     train_gec_file = 'data/{}/{}/{}'.format(opt.dataset, 'train', 'GEC_aug_informal')
-    train_dataset = T5TrainDataset(train_src_file, train_tgt_file, train_gec_file, tokenizer, opt.max_len)
+    train_dataset = T5TrainDataset(train_src_file, train_tgt_file, train_gec_file, tokenizer, opt.max_len, aug_p=opt.spl_p)
     train_loader = DataLoader(train_dataset,
                               num_workers=0, # num_workers EOFError: Ran out of input AttributeError: Can't pickle local object 'SCIterator.<locals>.cls_fn'
                               batch_size=opt.batch_size,
